@@ -20,6 +20,7 @@ from attr import attrs, attrib, Factory
 from datetime import datetime
 
 # TODO link load durations - get both load lines at once
+# TODO get request matrix members
 
 
 @attrs
@@ -71,7 +72,7 @@ def get_user_sessions(slog_str):
     re_session_end = re.compile(r'\$.+\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{3} <Session')
     re_stc_start = re.compile(r'\$.+\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{3} >STC\n')
     re_stc_end = re.compile(r'\$.+\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{3} <STC\n')
-    re_link_load = re.compile(r'\$.+ >OpenLink  .+\n\n\$.+ <OpenLink')
+    re_link_load = re.compile(r'\$.* >OpenLink.*\n\$.+ <OpenLink')
     re_header = re.compile(r'\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{3} >Session.+\n'
                            r' user=".+"\n'
                            r' build=".+"\n'
@@ -124,7 +125,6 @@ def get_user_sessions(slog_str):
         session_id = sync_start.split(" ")[0]
         user_name = session_users[session_id]
         start = re_time_stamp.findall(sync_start)[0]
-        # users[user_name].ses_cls[session_id].sync_starts.append(start)
         sync = RvtSync(str(i).zfill(2) + session_id)
         sync.sync_start = start
         users[user_name].ses_cls[session_id].syncs.append(sync)
@@ -136,13 +136,14 @@ def get_user_sessions(slog_str):
         session_id = sync_end.split(" ")[0]
         user_name = session_users[session_id]
         end = re_time_stamp.findall(sync_end)[0]
-        # users[user_name].ses_cls[session_id].sync_ends.append(end)
+        # users[user_name].ses_cls[session_id].syncs[i].sync_end = end
         # print("{} sync_end: {}".format(session_id, end))
     # print(i)
 
     # print(session_users)
 
     link_loads = re_link_load.findall(slog_str)
+    print(link_loads)
     for i, link_load in enumerate(link_loads):
         print(link_load)
         session_id = link_load.split(" ")[0]
