@@ -72,7 +72,8 @@ def get_user_sessions(slog_str):
     re_session_end = re.compile(r'\$.+\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{3} <Session')
     re_stc_start = re.compile(r'\$.+\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{3} >STC\n')
     re_stc_end = re.compile(r'\$.+\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{3} <STC\n')
-    re_link_load = re.compile(r'\$.* >OpenLink.*\n\$.+ <OpenLink')
+    re_link_load = re.compile(r'(\$.{8}) ([\d\:\-\.\s]+?) \>OpenLink\s+\"([^\"]+?)\".+? ([\d\:\-\.\s]+?) <OpenLink',
+                              re.DOTALL)
     re_header = re.compile(r'\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{3} >Session.+\n'
                            r' user=".+"\n'
                            r' build=".+"\n'
@@ -143,17 +144,17 @@ def get_user_sessions(slog_str):
     # print(session_users)
 
     link_loads = re_link_load.findall(slog_str)
-    print(link_loads)
+    # print(link_loads)
     for i, link_load in enumerate(link_loads):
-        print(link_load)
-        session_id = link_load.split(" ")[0]
+        # print(link_load)
+        session_id = link_load[0]
         user_name = session_users[session_id]
-        start = re_time_stamp.findall(link_load)[0]
-        end = re_time_stamp.findall(link_load)[0]
+        start = link_load[1][:-4]
+        end = link_load[3][:-4]
         start_time = datetime.strptime(start, "%Y-%m-%d %H:%M:%S")
         end_time = datetime.strptime(end, "%Y-%m-%d %H:%M:%S")
         duration = end_time - start_time
-        link_path = link_load.split('"')[-2]
+        link_path = link_load[2]
         link = RvtLink(str(i).zfill(4) + session_id)
         link.link_open_start = start
         link.link_open_end = end
@@ -188,11 +189,11 @@ else:
             build = slog_users[user].ses_cls[session].build
             duration = slog_users[user].ses_cls[session].duration
             print("     session {}\n"
-                  "     on {} {} / session_start {} / session_duration: {}".format(ses_id,
-                                                                                   host,
-                                                                                   build,
-                                                                                   start,
-                                                                                   duration))
+                  "     on {} {} / start {} / duration: {}".format(ses_id,
+                                                                   host,
+                                                                   build,
+                                                                   start,
+                                                                   duration))
 
             for link in slog_users[user].ses_cls[session].links:
                 print("          link open start {}".format(link.link_open_start))
