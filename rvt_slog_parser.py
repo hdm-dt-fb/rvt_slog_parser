@@ -19,7 +19,7 @@ import colorful
 from attr import attrs, attrib, Factory
 from datetime import datetime
 
-# TODO link load durations - get both load lines at once
+# TODO sync durations - get both load lines at once
 # TODO get request matrix members
 
 
@@ -72,6 +72,7 @@ def get_user_sessions(slog_str):
     re_session_end = re.compile(r'\$.+\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{3} <Session')
     re_stc_start = re.compile(r'\$.+\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{3} >STC\n')
     re_stc_end = re.compile(r'\$.+\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{3} <STC\n')
+    re_stc_block = re.compile(r'(\$.{8}) ([\d\:\-\s]+?)\..+ >STC\s+.+? ([\d\:\-\s]+?)\..{3} <STC\n')
     re_link_load = re.compile(r'(\$.{8}) ([\d\:\-\.\s]+?) \>OpenLink\s+\"([^\"]+?)\".+? ([\d\:\-\.\s]+?) <OpenLink',
                               re.DOTALL)
     re_header = re.compile(r'\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{3} >Session.+\n'
@@ -189,17 +190,18 @@ else:
             build = slog_users[user].ses_cls[session].build
             duration = slog_users[user].ses_cls[session].duration
             print("     session {}\n"
-                  "     on {} {} / start {} / duration: {}".format(ses_id,
+                  "     on {} {} | start {} | duration {}".format(ses_id,
                                                                    host,
                                                                    build,
                                                                    start,
                                                                    duration))
 
             for link in slog_users[user].ses_cls[session].links:
-                print("          link open start {}".format(link.link_open_start))
-                print("             of link file {}".format(link.link_path))
+                print("          link open start {} | duration {}".format(link.link_open_start,
+                                                                          link.link_open_duration))
+                print("             {}".format(link.link_path))
 
             for sync in slog_users[user].ses_cls[session].syncs:
-                print("          sync start {}".format(sync.sync_start))
+                print(colorful.brown("          sync start {}".format(sync.sync_start)))
 
     print(colorful.bold_cyan("+finished parsing {}".format(slog_path)))
