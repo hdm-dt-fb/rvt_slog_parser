@@ -90,6 +90,9 @@ ENV/
 # IDE
 .idea
 
+# html output
+html/*.html
+
 # Spyder project settings
 .spyderproject
 .spyproject
