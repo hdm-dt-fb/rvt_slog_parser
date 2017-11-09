@@ -93,6 +93,9 @@ ENV/
 # html output
 html/*.html
 
+# db output
+db/*.json
+
 # Spyder project settings
 .spyderproject
 .spyproject
