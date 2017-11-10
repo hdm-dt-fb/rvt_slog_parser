@@ -45,6 +45,7 @@ class RvtSession(object):
     build = attrib(default=Factory(str))
     hosts = attrib(default=Factory(str))
     central = attrib(default=Factory(str))
+    local = attrib(default=Factory(str))
     syncs = attrib(default=Factory(list))
     links = attrib(default=Factory(list))
 
@@ -99,6 +100,7 @@ def get_user_sessions(slog_str):
     re_build = re.compile(r' build=.+')
     re_host = re.compile(r' host=.+')
     re_central = re.compile(r' central=.+')
+    re_local = re.compile(r' local=.+')
     re_time_stamp = re.compile(r'\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}')
     re_session_end = re.compile(r'\$.+\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{3} <Session')
     re_stc_start = re.compile(r'\$.+\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{3} >STC\n')
@@ -113,6 +115,7 @@ def get_user_sessions(slog_str):
                            r' host=.+ ".+"\n'
                            r' server=.+ ".+"\n'
                            r' central=".+"\n'
+                           r' .+=".+"\n'
                            )
 
     headers = re_header.findall(slog_str)
@@ -124,6 +127,11 @@ def get_user_sessions(slog_str):
         host = re_host.findall(header)[0].split('"')[1].split(".")[0]
         build = re_build.findall(header)[0].split('"')[1]
         central = re_central.findall(header)[0].split('"')[1]
+        local = re_local.findall(header)
+        if not local:
+            local = ""
+        else:
+            local = local[0].split('"')[1]
         session_users[session_id] = user_name
         # print(user_name, session_id, len(header))
 
@@ -135,6 +143,7 @@ def get_user_sessions(slog_str):
         users[user_name].ses_cls[session_id].hosts = host
         users[user_name].ses_cls[session_id].build = build
         users[user_name].ses_cls[session_id].central = central
+        users[user_name].ses_cls[session_id].local = local
         all_users.add(user_name)
 
     # print(all_users)
