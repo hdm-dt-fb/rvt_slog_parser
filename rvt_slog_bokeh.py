@@ -11,7 +11,7 @@ def build_graph_html(dataframe, project_code):
 
     html_path = op.join(op.dirname(__file__), "html")
     output_path = op.join(html_path, project_code + "_rvt_sessions.html")
-    output_file(output_path, title=graph_title)
+    output_file(output_path, title=graph_title, mode="inline")
 
     colors = viridis(len(dataframe["users"]))
     hover = HoverTool(tooltips=[("name", "@name"),
