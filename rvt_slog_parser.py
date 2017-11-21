@@ -23,11 +23,13 @@ import colorful
 from attr import attrs, attrib, Factory
 from datetime import datetime
 from collections import defaultdict
+from itertools import zip_longest
 import rvt_slog_storage
 import rvt_slog_bokeh
 
 # TODO sync durations - get both load lines at once
 # TODO get request matrix members
+# TODO first store and read db then generate bokeh graph from that
 
 
 @attrs
@@ -167,23 +169,27 @@ def get_user_sessions(slog_str):
         users[user_name].ses_cls[session_id].duration = duration
 
     sync_starts = re_stc_start.findall(slog_str)
-    for i, sync_start in enumerate(sync_starts):
+    sync_ends = re_stc_end.findall(slog_str)
+
+    for i, (sync_start, sync_end) in enumerate(zip_longest(sync_starts, sync_ends, fillvalue="")):
         session_id = sync_start.split(" ")[0]
         user_name = session_users[session_id]
         start = re_time_stamp.findall(sync_start)[0]
+        end = re_time_stamp.findall(sync_end)
         sync = RvtSync(str(i).zfill(2) + session_id)
         sync.sync_start = start
+
+        if end:
+            end = end[0]
+            sync.sync_end = end
+            start_time = datetime.strptime(start, "%Y-%m-%d %H:%M:%S")
+            end_time = datetime.strptime(end, "%Y-%m-%d %H:%M:%S")
+            duration = end_time - start_time
+            duration = duration.__str__()
+            sync.sync_duration = duration
+
         users[user_name].ses_cls[session_id].syncs.append(sync)
         # print("{} sync_start: {}".format(session_id, start))
-    # print(i)
-
-    sync_ends = re_stc_end.findall(slog_str)
-    for i, sync_end in enumerate(sync_ends):
-        session_id = sync_end.split(" ")[0]
-        user_name = session_users[session_id]
-        end = re_time_stamp.findall(sync_end)[0]
-        # users[user_name].ses_cls[session_id].syncs[i].sync_end = end
-        # print("{} sync_end: {}".format(session_id, end))
     # print(i)
 
     # print(session_users)
@@ -216,7 +222,8 @@ project_code = args["<project_code>"]
 db_store = args["--db_store"]
 db_path = args["--db_path"]
 slog_users = None
-df_dict = {"user": [], "start": [], "end": []}
+session_dict = {"user": [], "start": [], "end": []}
+link_load_dict = {"user": [], "path": [], "start": [], "end": []}
 
 print(colorful.bold_cyan("+parsing: {}".format(op.basename(slog_path))))
 print(" at path: {}".format(op.abspath(slog_path)))
@@ -239,9 +246,9 @@ else:
             host = slog_users[user].ses_cls[session].hosts
             build = slog_users[user].ses_cls[session].build
             duration = slog_users[user].ses_cls[session].duration
-            df_dict["user"].append(user)
-            df_dict["start"].append(start)
-            df_dict["end"].append(end)
+            session_dict["user"].append(user)
+            session_dict["start"].append(start)
+            session_dict["end"].append(end)
             print("     session {}\n"
                   "     on {} {} | start {} | duration {}".format(ses_id, host, build, start, duration))
 
@@ -249,6 +256,10 @@ else:
                 print("          link open start {} | duration {}".format(link.link_open_start,
                                                                           link.link_open_duration))
                 print("             {}".format(link.link_path))
+                link_load_dict["user"].append(user)
+                link_load_dict["path"].append(link.link_path)
+                link_load_dict["start"].append(link.link_open_start)
+                link_load_dict["end"].append(link.link_open_end)
 
             for sync in slog_users[user].ses_cls[session].syncs:
                 print(colorful.brown("          sync start {}".format(sync.sync_start)))
@@ -257,6 +268,9 @@ else:
         print(colorful.bold_cyan("-db access."))
         user_dict = serializer(slog_users)
         db = rvt_slog_storage.write_db(project_code, db_path, user_dict)
-        bokeh_graph = rvt_slog_bokeh.build_graph_html(rvt_slog_bokeh.dict_to_df(df_dict), project_code)
+        bokeh_graph = rvt_slog_bokeh.build_graph_html(rvt_slog_bokeh.sessions_df(session_dict),
+                                                      rvt_slog_bokeh.links_df(link_load_dict),
+                                                      project_code
+                                                      )
 
     print(colorful.bold_cyan("+finished parsing {}".format(slog_path)))
